@@ -123,6 +123,56 @@ class TestLightcurve(object):
         counts = np.array([np.nan for i in range(times.shape[0])])
         lc = Lightcurve(times, counts)
 
+    def test_method_works(self):
+        lc = Lightcurve.make_lightcurve(self.times, self.dt)
+        lc.to_txt("test_lc.txt", use_counts=True)
+
+    def test_method_saves_counts_correctly(self):
+        lc = Lightcurve.make_lightcurve(self.times, self.dt)
+        lc.to_txt("test_lc.txt", use_counts=True)
+        lc_loaded = np.loadtxt("test_lc.txt")
+        assert np.allclose(lc_loaded[:,1], lc.counts)
+
+    def test_method_saves_countrate_correctly(self):
+        lc = Lightcurve.make_lightcurve(self.times, self.dt)
+        lc.to_txt("test_lc.txt", use_counts=False)
+        lc_loaded = np.loadtxt("test_lc.txt")
+        assert np.allclose(lc_loaded[:,1], lc.countrate)
+
+    @raises(AssertionError)
+    def save_method_needs_string_input(self):
+        lc = Lightcurve.make_lightcurve(self.times, self.dt)
+        lc.to_txt([1,2,3], use_counts=False)
+
+    def test_read_lightcurve_works(self):
+        filename = "test_tte.txt"
+        np.savetxt(filename, self.times)
+        dt = 0.1
+        lc = Lightcurve.from_txt(filename, tte=True, dt=dt)
+
+    def test_read_tte_data_works_correctly(self):
+        dt = 0.1
+        filename = "test_tte.txt"
+        lc = Lightcurve.from_txt(filename, tte=True, dt=dt)
+        assert np.isclose(lc.dt, dt)
+        assert np.isclose(lc.tseg, self.times[-1]-self.times[0])
+
+    def test_read_binned_data(self):
+        lc = Lightcurve.from_txt("test_lc.txt", tte=False)
+
+    def test_read_data_usecols(self):
+        timestamps = np.linspace(0,1000,1000)
+        data = np.random.randint(0,100, size=(4,timestamps.shape[0]))
+        data = np.vstack([timestamps, data])
+        np.savetxt("test_usecols.txt", data)
+        usecols = [0,2]
+        lc = Lightcurve.from_txt("test_usecols.txt", tte=False, usecols=usecols)
+
+    @raises(AssertionError)
+    def test_read_data_usecols_fails(self):
+        usecols = [0,2,4]
+        lc = Lightcurve.from_txt("test_usecols.txt", tte=False, usecols=usecols)
+
 
 class TestLightcurveRebin(object):
 
@@ -149,7 +199,7 @@ class TestLightcurveRebin(object):
         assert np.isclose(lc_binned.dt, dt_new)
 
         counts_test = np.zeros_like(lc_binned.time) + \
-            self.lc.counts[0]*dt_new/self.lc.dt
+                      self.lc.counts[0]*dt_new/self.lc.dt
         assert np.allclose(lc_binned.counts, counts_test)
 
     def rebin_several(self, dt):
