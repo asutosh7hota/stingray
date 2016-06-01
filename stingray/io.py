@@ -8,7 +8,7 @@ import os
 import six
 
 from astropy.io import fits
-from astropy.table import Table
+import astropy.io.ascii
 
 import stingray.utils as utils
 from .utils import order_list_of_arrays, is_string
@@ -302,7 +302,20 @@ def common_name(str1, str2, default='common'):
     return common_str
 
 def _save_pickle_object(object, filename, **kwargs):
+    """
 
+    Save object in a pickle file.
+
+    Parameters
+    ----------
+    filename : string
+        The file name to save to
+
+    save_as_dict: boolean
+        For compatibility with MaLTpyNT, save_as_dict should be true. Set
+        it to 'False' if intention is to store input as class object.
+
+    """
     if 'save_as_dict' in locals():
         # Get all object's attributes and its values in a dictionary format
         items = vars(object)
@@ -385,15 +398,12 @@ def _retrieve_ascii_object(filename, **kwargs):
         An astropy.Table object with the data from the file
 
 
-    Example
-    -------
     """
 
     assert isinstance(filename, six.string_types), \
         "filename must be string!"
 
     if 'usecols' in list(kwargs.keys()):
-        assert np.size(kwargs['usecols']) == 2, "Need to define two columns"
         usecols = kwargs["usecols"]
     else:
         usecols = None
@@ -409,8 +419,8 @@ def _retrieve_ascii_object(filename, **kwargs):
     else:
         names = None
 
-    data = Table.read(filename, data_start=skiprows,
-                      names=names, format="ascii")
+    data = astropy.io.ascii.read(filename, data_start=skiprows,
+                      names=names)
 
     if usecols is None:
         return data
@@ -424,20 +434,37 @@ def _retrieve_ascii_object(filename, **kwargs):
 
 def write(input_, filename, format_='pickle', **kwargs):
     """
-    Pickle a class instance. For parameters depending on
-    `format_`, see individual function definitions.
+    Write data to file.
+    Allowed formats currently are pickle files (supports objects) and
+    ASCII (supports tables).
+
+    For parameters depending on `format_`, see individual function definitions.
 
     Parameters
     ----------
     object: a class instance
     filename: str
         name of the file to be created.
+
     format_: str
         pickle, hdf5, ascii ...
 
-    save_as_dict: boolean
-        For compatibility with MaLTpyNT, save_as_dict should be true. Set
-        it to 'False' if intention is to store input as class object.
+    kwargs : See function definitions for additional options depending on
+    `format_`
+
+    Examples
+    --------
+    Write a simple ASCII table to a text file:
+    >>> time = [1, 2, 3]
+    >>> counts = [4, 5, 6]
+    >>> data = np.array([time, counts]).T
+    >>> write(data, "mydata.txt", format_="ascii")
+
+    Write a simple ASCII table with mixed types:
+    >>> time = ["foo", 1, 2]
+    >>> counts = [5, 6, 7]
+    >>> data = np.array([time, counts]).T
+    >>> write(data, "mydata.txt", format_="ascii", fmt=["%s", "%s"])
     """
 
     if format_ == 'pickle':
@@ -460,6 +487,23 @@ def read(filename, format_='pickle', **kwargs):
         name of the file to be retrieved.
     format_: str
         pickle, hdf5, ascii ...
+
+
+    Example
+    -------
+    Read a simple ascii file from disk:
+    >>> table = read("ascii_test.txt", format_="ascii")
+
+    Leave out first two rows:
+    >>> table = read("ascii_test.txt", format_="ascii", skiprows=2)
+    Note: `skiprows` defines the *number* of rows to skip, therefore starts
+    with one.
+
+    Read only the first column:
+    >>> table = read("ascii_test.txt", format_="ascii", usecols=0)
+    Note: `usecols` defines the *index* of the columns to use, therefore starts
+    with zero.
+
     """
 
     if format_ == 'pickle':

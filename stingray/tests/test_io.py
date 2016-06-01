@@ -153,6 +153,32 @@ class TestFileFormats(object):
         read("ascii_test.txt", "ascii")
         os.remove("ascii_test.txt")
 
+    def test_read_ascii_skip_row(self):
+        time = [1,2,3,4,5]
+        counts = [5,7,8,2,3]
+        np.savetxt("ascii_test.txt", np.array([time, counts]).T)
+        table = read("ascii_test.txt", "ascii", skiprows=1)
+
+        assert np.all(np.array(table[table.colnames[0]]) == time[1:])
+        assert np.all(np.array(table[table.colnames[1]]) == counts[1:])
+
+    def test_read_ascii_use_cols(self):
+        time = [1,2,3,4,5]
+        counts = [5,7,8,2,3]
+        np.savetxt("ascii_test.txt", np.array([time, counts]).T)
+        table = read("ascii_test.txt", "ascii", usecols=1)
+
+        assert np.all(np.array(table) == counts)
+
+    def test_read_ascii_with_names(self):
+        time = [1,2,3,4,5]
+        counts = [5,7,8,2,3]
+        np.savetxt("ascii_test.txt", np.array([time, counts]).T)
+        colnames = ["Time", "Counts"]
+        table = read("ascii_test.txt", "ascii", names=colnames)
+
+        assert np.all(table.colnames == colnames)
+
 
     def test_ascii_attributes(self):
         pass
